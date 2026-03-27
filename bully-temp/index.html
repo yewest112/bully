@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BULLY - Ye</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d1b2b 50%, #1a1a1a 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(255, 71, 87, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 71, 87, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .album-cover {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 
+                0 20px 60px rgba(0,0,0,0.6),
+                0 0 0 1px rgba(255,255,255,0.05);
+            margin-bottom: 30px;
+            transition: transform 0.3s ease;
+        }
+
+        .album-cover.playing img {
+            animation: rotate 30s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .album-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .album-info {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .album-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        .artist-name {
+            font-size: 18px;
+            color: #aaa;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .player {
+            background: rgba(60, 60, 60, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px 20px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .current-track {
+            margin-bottom: 15px;
+        }
+
+        .current-track-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .current-track-artist {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #3a3a3a;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+
+        .progress {
+            height: 100%;
+            background: #ff4757;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 0 5px;
+        }
+
+        .volume-icon {
+            width: 20px;
+            color: #888;
+        }
+
+        .volume-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        #volumeSlider {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #3a3a3a;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        #volumeSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ff4757;
+            cursor: pointer;
+        }
+
+        #volumeSlider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ff4757;
+            cursor: pointer;
+            border: none;
+        }
+
+        #volumeValue {
+            min-width: 35px;
+            text-align: right;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            color: #ff4757;
+        }
+
+        .control-btn.play-pause {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #ff4757;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn.play-pause:hover {
+            background: #ff3838;
+            transform: scale(1.05);
+        }
+
+        .control-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .track-list {
+            background: rgba(60, 60, 60, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .track-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #3a3a3a;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .track-item:last-child {
+            border-bottom: none;
+        }
+
+        .track-item:hover {
+            background: #333;
+        }
+
+        .track-item.playing {
+            background: #ff475722;
+            border-left: 3px solid #ff4757;
+        }
+
+        .track-number {
+            width: 25px;
+            color: #888;
+            font-size: 14px;
+        }
+
+        .track-info {
+            flex: 1;
+        }
+
+        .track-name {
+            font-size: 15px;
+            margin-bottom: 3px;
+        }
+
+        .track-duration {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .playing-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .playing-icon svg {
+            fill: #ff4757;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+
+            .album-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="album-cover">
+            <img src="cover.jpg" alt="BULLY - Ye">
+        </div>
+        
+        <div class="album-info">
+            <h1 class="album-title">BULLY</h1>
+            <p class="artist-name">Ye</p>
+            <p style="margin-top: 15px;">
+                🎵 也可以在 
+                <a href="https://163cn.tv/30hS9M3" target="_blank" style="color: #ff4757; text-decoration: none;">
+                    网易云音乐收听完整专辑 →
+                </a>
+            </p>
+            <p style="margin-top: 8px; color: #888; font-size: 14px;">
+                搬运不易，请大家给博客点个订阅 🙏 博客在陆续发布上传
+            </p>
+            <p style="margin-top: 8px; color: #888; font-size: 14px;">
+                如果手机加载失败，点击上方链接去网易云音乐收听 ↗️
+            </p>
+        </div>
+
+        <div class="player">
+            <div class="current-track">
+                <div class="current-track-name" id="currentTrackName">Select a track</div>
+                <div class="current-track-artist" id="currentTrackArtist">Ye</div>
+            </div>
+            
+            <div class="progress-bar" id="progressBar">
+                <div class="progress" id="progress"></div>
+            </div>
+            
+            <div class="time-info">
+                <span id="currentTime">0:00</span>
+                <span id="duration">0:00</span>
+            </div>
+            
+            <div class="volume-control">
+                <div class="volume-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+                    </svg>
+                </div>
+                <input type="range" id="volumeSlider" min="0" max="100" value="80">
+                <span id="volumeValue">80%</span>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn" id="prevBtn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                    </svg>
+                </button>
+                <button class="control-btn play-pause" id="playPauseBtn">
+                    <svg id="playIcon" viewBox="0 0 24 24" style="display: none;">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    <svg id="pauseIcon" viewBox="0 0 24 24">
+                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                    </svg>
+                </button>
+                <button class="control-btn" id="nextBtn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="track-list" id="trackList">
+        </div>
+
+        <div class="footer">
+            <div style="color: #333; font-size: 12px; margin-top: 10px;">
+                总访问量: <span id="busuanzi_value_site_pv"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 不蒜子访问统计 -->
+    <script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+    <audio id="audio"></audio>
+
+    <script>
+        const tracks = [
+            {
+                name: "KING", 
+                feat: null, 
+                file: "tracks/01 - KING.mp3",
+                lyrics: "I'm the king of this shit\nThey don't want me to be here\nI'm the king of this shit\nThey don't want me to be here\nI'm the king of this shit\nAnd I'm not going nowhere\nI'm the king of this shit\nAnd I'm not going nowhere"
+            },
+            {
+                name: "THIS IS A MUST", 
+                feat: "Nine Vicious", 
+                file: "tracks/02 - THIS IS A MUST (feat. Nine Vicious).mp3",
+                lyrics: "This is a must, this is a must\nWe been through it all, we ain't scared to dust\nThis is a must, this is a must\nWe came from the bottom, now we here to trust"
+            },
+            {
+                name: "FATHER", 
+                feat: "Travis Scott", 
+                file: "tracks/03 - FATHER (feat. Travis Scott).mp3",
+                lyrics: "Father, father\nI just wanna let you know\nI'm on my way, I'm on my way\nFather, father\nI just wanna let you know\nI'm out here trying, I'm out here trying"
+            },
+            {
+                name: "MAMA'S FAVORITE", 
+                feat: "Nine Vicious & Ty Dolla $ign", 
+                file: "tracks/04 - MAMA'S FAVORITE (feat. Nine Vicious & Ty Dolla $ign).mp3",
+                lyrics: "Mama's favorite, mama's favorite\nShe love me like she raised me\nMama's favorite, mama's favorite\nShe know I'm gonna make it"
+            },
+            {
+                name: "ALL THE LOVE", 
+                feat: "Andre Troutman", 
+                file: "tracks/05 - ALL THE LOVE (feat. Andre Troutman).mp3",
+                lyrics: "All the love I got for you\nAll the love I got for you\nI just wanna give it all to you\nAll the love I got for you"
+            },
+            {
+                name: "PUNCH DRUNK", 
+                feat: null, 
+                file: "tracks/06 - PUNCH DRUNK.mp3",
+                lyrics: "Punch drunk love, I'm in it\nPunch drunk love, I'm living\nThey don't know what I've been through\nBut I'm still here, I'm still standing"
+            },
+            {
+                name: "SISTERS & BROTHERS", 
+                feat: null, 
+                file: "tracks/07 - SISTERS & BROTHERS.mp3",
+                lyrics: "Sisters and brothers, we all together\nSisters and brothers, we stick together\nThrough the good and the bad times\nWe gonna make it out alive"
+            },
+            {
+                name: "WHATEVER WORKS", 
+                feat: null, 
+                file: "tracks/08 - WHATEVER WORKS.mp3",
+                lyrics: "Whatever works for you\nWhatever works for me\nWe just living life\nWe just trying to be free\nWhatever works for you\nWhatever works for me"
+            },
+            {
+                name: "I CAN'T WAIT", 
+                feat: null, 
+                file: "tracks/09 - I CAN'T WAIT.mp3",
+                lyrics: "I can't wait for the moment\nI can't wait for the day\nWhen everything falls into place\nAnd I finally get to say\nI can't wait, I can't wait\nI've been waiting all my life"
+            },
+            {
+                name: "BULLY", 
+                feat: "Ceelo Green", 
+                file: "tracks/10 - BULLY (feat. Ceelo Green).mp3",
+                lyrics: "Bully, bully\nYou think you're so tough\nBully, bully\nYou think you got enough\nBut you don't know what I've been through\nYou don't know what I can do\nBully, bully\nYou can't keep me down"
+            },
+            {
+                name: "PREACHER MAN", 
+                feat: null, 
+                file: "tracks/11 - PREACHER MAN.mp3",
+                lyrics: "Preacher man, preacher man\nTell me what the word says\nPreacher man, preacher man\nHelp me find my way back home\nI've been lost, I've been found\nBut I need you now"
+            },
+            {
+                name: "BEAUTY AND THE BEAST", 
+                feat: null, 
+                file: "tracks/12 - BEAUTY AND THE BEAST.mp3",
+                lyrics: "Beauty and the beast\nThat's what they call us\nBeauty and the beast\nWe fit together perfectly\nThey don't understand\nBut we don't give a damn"
+            },
+            {
+                name: "WHITE LINES", 
+                feat: "Andre Troutman", 
+                file: "tracks/13 - WHITE LINES (feat. Andre Troutman).mp3",
+                lyrics: "White lines, white lines\nGoing down the highway\nWhite lines, white lines\nTaking me far away\nI've been driving all night\nJust trying to find my way"
+            },
+            {
+                name: "HIGHS AND LOWS", 
+                feat: null, 
+                file: "tracks/14 - HIGHS AND LOWS.mp3",
+                lyrics: "Highs and lows, highs and lows\nI been through 'em all\nHighs and lows, highs and lows\nI stood through 'em all\nThrough the sunshine and the rain\nI'm still standing here today"
+            }
+        ];
+
+        const audio = document.getElementById('audio');
+        const progress = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
+        const currentTrackNameEl = document.getElementById('currentTrackName');
+        const currentTrackArtistEl = document.getElementById('currentTrackArtist');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const trackListEl = document.getElementById('trackList');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValue = document.getElementById('volumeValue');
+        const albumCover = document.querySelector('.album-cover');
+
+        let currentTrackIndex = -1;
+        let isPlaying = false;
+
+        // 初始化音量
+        audio.volume = volumeSlider.value / 100;
+        volumeSlider.addEventListener('input', function() {
+            audio.volume = this.value / 100;
+            volumeValue.textContent = this.value + '%';
+        });
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return mins + ':' + (secs < 10 ? '0' + secs : secs);
+        }
+
+        function loadTrack(index) {
+            currentTrackIndex = index;
+            const track = tracks[index];
+            audio.src = track.file;
+            currentTrackNameEl.textContent = track.name;
+            currentTrackArtistEl.textContent = track.feat ? `${track.feat} - Ye` : 'Ye';
+            audio.load();
+            if (isPlaying) {
+                audio.play();
+            }
+            
+            // Update UI
+            document.querySelectorAll('.track-item').forEach((el, i) => {
+                if (i === index) {
+                    el.classList.add('playing');
+                } else {
+                    el.classList.remove('playing');
+                }
+            });
+        }
+
+        function playPause() {
+            if (currentTrackIndex === -1) {
+                loadTrack(0);
+                isPlaying = true;
+                audio.play();
+                updatePlayPauseUI();
+                return;
+            }
+            
+            if (isPlaying) {
+                audio.pause();
+                isPlaying = false;
+            } else {
+                audio.play();
+                isPlaying = true;
+            }
+            updatePlayPauseUI();
+        }
+
+        function updatePlayPauseUI() {
+            if (isPlaying) {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+                albumCover.classList.add('playing');
+            } else {
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+                albumCover.classList.remove('playing');
+            }
+        }
+
+        function nextTrack() {
+            let nextIndex = currentTrackIndex + 1;
+            if (nextIndex >= tracks.length) nextIndex = 0;
+            loadTrack(nextIndex);
+            if (isPlaying) audio.play();
+        }
+
+        function prevTrack() {
+            let prevIndex = currentTrackIndex - 1;
+            if (prevIndex < 0) prevIndex = tracks.length - 1;
+            loadTrack(prevIndex);
+            if (isPlaying) audio.play();
+        }
+
+        // Update progress
+        audio.addEventListener('timeupdate', () => {
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progress.style.width = percent + '%';
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+        });
+
+        audio.addEventListener('loadedmetadata', () => {
+            durationEl.textContent = formatTime(audio.duration);
+        });
+
+        audio.addEventListener('ended', () => {
+            nextTrack();
+        });
+
+        progressBar.addEventListener('click', (e) => {
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = percent * audio.duration;
+        });
+
+        playPauseBtn.addEventListener('click', playPause);
+        prevBtn.addEventListener('click', prevTrack);
+        nextBtn.addEventListener('click', nextTrack);
+
+        // Render track list
+        tracks.forEach((track, index) => {
+            const item = document.createElement('div');
+            item.className = 'track-item';
+            item.innerHTML = `
+                <span class="track-number">${index + 1}</span>
+                <div class="track-info">
+                    <div class="track-name">${track.name}${track.feat ? `<br><small style="color:#888; font-weight:normal">feat. ${track.feat}</small>` : ''}</div>
+                </div>
+                ${index === currentTrackIndex ? `<div class="playing-icon"><svg viewBox="0 0 24 24"><path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-2 14.25v-9l6 4.5-6 4.5z"/></svg></div></div>` : ''}
+            `;
+            item.addEventListener('click', () => {
+                loadTrack(index);
+                isPlaying = true;
+                audio.play();
+                updatePlayPauseUI();
+            });
+            trackListEl.appendChild(item);
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                playPause();
+            } else if (e.code === 'ArrowRight') {
+                nextTrack();
+            } else if (e.code === 'ArrowLeft') {
+                prevTrack();
+            }
+        });
+
+        // Fix for mobile: preload metadata for better mobile playback
+        audio.preload = 'metadata';
+        
+        // Handle mobile errors - prompt to open NetEase
+        audio.addEventListener('error', (e) => {
+            console.error('Audio playback error:', e);
+            if(confirm('加载失败，GitHub Pages 在国内网络加载较慢，是否打开网易云音乐播放？')) {
+                window.open('https://163cn.tv/30hS9M3', '_blank');
+            }
+        });
+
+        // Initialize with first track
+        currentTrackNameEl.textContent = tracks[0].name;
+        currentTrackArtistEl.textContent = tracks[0].feat ? `feat. ${tracks[0].feat} - Ye` : 'Ye';
+    </script>
+</body>
+</html>
